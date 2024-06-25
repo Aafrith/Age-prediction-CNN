@@ -40,17 +40,18 @@ def predict_age(image_path):
         print("No faces detected.")
         return None, []
     
-    # Predict age for each detected face
-    ages = []
-    for (x, y, w, h) in faces:
-        face = img[y:y+h, x:x+w]  # Extract face
-        preprocessed_face = preprocess_image(face)
-        prediction = model.predict(preprocessed_face)
-        predicted_class_index = np.argmax(prediction, axis=1)[0]
-        predicted_age_range = label_encoder.inverse_transform([predicted_class_index])[0]
-        ages.append((predicted_age_range, (x, y, w, h)))
+    # Select the largest face
+    largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
+    x, y, w, h = largest_face
     
-    return img, ages
+    # Predict age for the largest detected face
+    face = img[y:y+h, x:x+w]  # Extract face
+    preprocessed_face = preprocess_image(face)
+    prediction = model.predict(preprocessed_face)
+    predicted_class_index = np.argmax(prediction, axis=1)[0]
+    predicted_age_range = label_encoder.inverse_transform([predicted_class_index])[0]
+    
+    return img, [(predicted_age_range, (x, y, w, h))]
 
 def display_faces_with_ages(image_path):
     # Predict ages and get faces
@@ -60,12 +61,12 @@ def display_faces_with_ages(image_path):
         # Convert grayscale image to color for display purposes
         img_color = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         
-        # Draw rectangles and put predicted ages
+        # Draw rectangle and put predicted age for the largest face
         for age, (x, y, w, h) in predicted_ages:
             cv2.rectangle(img_color, (x, y), (x+w, y+h), (0, 255, 0), 2)
             cv2.putText(img_color, f'Age: {age}', (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
         
-        # Display the image with bounding boxes and predicted ages
+        # Display the image with bounding box and predicted age
         cv2.imshow('Faces with Predicted Ages', img_color)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -73,5 +74,5 @@ def display_faces_with_ages(image_path):
         print("No faces detected to display.")
 
 # Test the display function with an image
-image_path = './test_images/01.jpg'
+image_path = './test_images/06.jpg'
 display_faces_with_ages(image_path)
